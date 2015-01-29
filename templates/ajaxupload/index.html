@@ -53,6 +53,7 @@
 <script>
 $(function () {
     $('#fileupload').fileupload({
+        maxChunkSize: 4000000, // 4MB
         dataType: 'json',
         done: function (e, data) {
             if(data.errors){

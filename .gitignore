@@ -5,3 +5,4 @@ bower_components/
 db.sqlite3
 node_modules/
 uploads/
+chunky/

@@ -4,35 +4,74 @@
 <meta charset="utf-8">
 <title>jQuery File Upload Example</title>
 <style>
+.progress-bar {
+    width: 0%;
+}
 .bar {
     height: 15px;
     border-radius: 13px;
     background: rgb(53, 109, 255);
 }
+.fileinput-button {
+    position: relative;
+    overflow: hidden;
+}
+.fileinput-button input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
 </style>
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
 <body>
-<input id="fileupload" type="file" name="files[]" data-url="/upload/" multiple>
-<div id="progress">
-    <div class="bar" style="width: 0%;"></div>
+
+<form id="fileupload" action="/upload/" method="POST" enctype="multipart/form-data">
+    <span class="btn btn-success fileinput-button">
+        <span>Add files...</span>
+        <input type="file" name="item" multiple>
+    </span>
+</form>
+<div class="progress">
+  <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+    <span class="sr-only">60% Complete</span>
+  </div>
 </div>
 <script src="{% static 'js/jquery.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
 <script src="{% static 'js/plugins.js' %}"></script>
 <script>
 $(function () {
     $('#fileupload').fileupload({
         dataType: 'json',
         done: function (e, data) {
+            if(data.errors){
+                $.each(data.errors, function(error) {
+                    $('<div class="error">error</div>');
+                });
+            }
             $.each(data.result.files, function (index, file) {
                 $('<p/>').text(file.name).appendTo(document.body);
+                $('<img>').attr('src', file.name.replace('uploads', 'static')).appendTo(document.body);
             });
         },
         progressall: function (e, data) {
             var progress = parseInt(data.loaded / data.total * 100, 10);
-            $('#progress .bar').css(
+            $('.progress .progress-bar').css(
                 'width',
                 progress + '%'
-            );
+            ).attr('aria-valuenow', progress);
+            $('.progress .sr-only').html(progress + '% Complete');
         }
     });
 });

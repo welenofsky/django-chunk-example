@@ -1,6 +1,10 @@
 from django import forms
+from django.forms import ModelForm
 
-class MediaForm(forms.Form):
-    title = forms.CharField(max_length='255')
-    description = forms.CharField(max_length='500')
-    file = forms.FileField()
+from .models import Media
+
+class MediaForm(ModelForm):
+
+    class Meta:
+        model = Media
+        fields = ['item', 'title', 'description']

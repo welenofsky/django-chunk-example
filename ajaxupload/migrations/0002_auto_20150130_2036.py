@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='media',
             name='item',
-            field=models.FileField(upload_to=ajaxupload.models.get_media_save_location),
+            field=models.FileField(upload_to=ajaxupload.models.gen_filename, blank=True, null=True),
             preserve_default=True,
         ),
     ]

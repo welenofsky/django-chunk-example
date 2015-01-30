@@ -1,12 +1,12 @@
 import os
 
-from django.db import models
 from django.utils.timezone import now as timezone_now
+from django.db import models
 
 from .mixins import TimeStampedModel
 
 
-def get_media_save_location(instance, filename):
+def gen_filename(instance, filename):
     now = timezone_now()
     filename_base, filename_ext = os.path.splitext(filename)
     return 'uploads/%s/%s%s' % (
@@ -19,4 +19,8 @@ def get_media_save_location(instance, filename):
 class Media(TimeStampedModel):
     title = models.CharField(max_length='255', default='', blank=True)
     description = models.CharField(max_length='500', default='', blank=True)
-    item = models.FileField(upload_to=get_media_save_location)
+    item = models.FileField(
+        upload_to=gen_filename,
+        blank=True,
+        null=True
+    )

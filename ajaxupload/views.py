@@ -3,7 +3,6 @@ import json
 import re
 
 from django.utils.timezone import now as timezone_now
-#from django.core.files.uploadedfile import UploadedFile
 from django.core.files.storage import default_storage as storage
 from django.shortcuts import render
 from django.http import HttpResponse
@@ -23,21 +22,47 @@ def upload(request):
         data = {}
         data['files'] = []
         if 'HTTP_CONTENT_DISPOSITION' in request.META:
+            """ Chunky """
             f = request.FILES['item']
-
-            filename = re.findall(
+            original_filename = re.findall(
                 'filename="(.*?)"',
                 request.META['HTTP_CONTENT_DISPOSITION'])[0]
-            print(filename)
-            handle_uploaded_file(f, filename)
-            print("\nCHUNKY\n")
-            print("%s\n%s\n%s\n" % (
-                request.META['HTTP_CONTENT_DISPOSITION'],
-                request.META['HTTP_CONTENT_RANGE'],
-                request.META['CONTENT_TYPE'],
+            # Chunk size regex
+            csr = re.compile(r'\d+')
+            cs_results = csr.findall(request.META['HTTP_CONTENT_RANGE'])
+            if len(cs_results) == 3:
+                CunkInfo = {
+                    "FILENAME": original_filename,
+                    "CHUNK_START": cs_results[0],
+                    "CHUNK_END": cs_results[1],
+                    "CHUNK_TOTAL": cs_results[2],
+                }
+                stuffed_form = MediaForm(request.POST, request.FILES)
+                try:
+                    print("saving the first chunk\n")
+                    instance = stuffed_form.save()
+                    print("%s %s" % (instance.id, instance.item.name))
+                except Exception as e:
+                    print("broke that lol: %s" % e)
+                    pass
+
+                print(original_filename)
+                handle_uploaded_file(f, original_filename)
+                print("\nCHUNKY\n")
+                file = {
+                    "name": original_filename,
+                    "size": request.META['CONTENT_LENGTH']
+                }
+                print("%s\n%s\n%s\n" % (
+                    request.META['HTTP_CONTENT_DISPOSITION'],
+                    request.META['HTTP_CONTENT_RANGE'],
+                    request.META['CONTENT_TYPE'],
+                    )
                 )
-            )
+            else:
+                print('incorrect chunk sizes returned %s' % len(cs_results))
         else:
+            """ Not Chunky """
             print(request.FILES['item'].name)
         form = MediaForm(request.POST, request.FILES)
 
@@ -58,7 +83,27 @@ def upload(request):
 
 def handle_uploaded_file(f, fdest):
     try:
-        with storage.open('chunky/%s' % fdest, 'ab') as destination:
+        filename = gen_filename(fdest)
+        with storage.open(filename, 'ab') as destination:
             destination.write(f.read())
     except Exception as e:
         print(e)
+
+
+def gen_filename(f):
+    now = timezone_now()
+    base, ext = os.path.splitext(f)
+    delta_time = now.strftime('%Y%m%d%H%M%S%s')
+    filename = 'chunky/%s%s' % (delta_time, ext.lower())
+    return filename
+
+
+def save_chunky_file(f):
+    pass
+
+
+def get_chunk_info(chunk):
+    # Chunk size regex
+    csr = re.compile(r'\d+')
+    cs_results = csr.findall(request.META['HTTP_CONTENT_RANGE'])
+    pass

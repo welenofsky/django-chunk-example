@@ -52,16 +52,21 @@
 <script src="{% static 'js/plugins.js' %}"></script>
 <script>
 $(function () {
+    var upload_id;
     $('#fileupload').fileupload({
         maxChunkSize: 4000000, // 4MB
         dataType: 'json',
         add: function (e, data) {
             $.getJSON('/upload/new', function (result) {
                 data.formData = result; // e.g. {upload_id: 123}
+                upload_id = result.upload_id;
+                console.log('UPLOAD ID: ', upload_id);
                 data.submit();
             });
         },
         done: function (e, data) {
+            console.log('done!');
+            console.log(data);
             if(data.errors){
                 $.each(data.errors, function(error) {
                     $('<div class="error">error</div>');

@@ -27,24 +27,10 @@ def upload(request):
 
     if 'HTTP_CONTENT_DISPOSITION' in request.META:
         """ Chunky """
+        ChunkInfo = get_file_info(request.POST, request.META)
         f = request.FILES['item']
-        original_filename = re.findall(
-            'filename="(.*?)"',
-            request.META['HTTP_CONTENT_DISPOSITION'])[0]
-        # Chunk size regex
-        csr = re.compile(r'\d+')
-        cs_results = csr.findall(request.META['HTTP_CONTENT_RANGE'])
-        if len(cs_results) == 3:
-            ChunkInfo = {
-                "FILENAME": original_filename,
-                "CHUNK_START": cs_results[0],
-                "CHUNK_END": cs_results[1],
-                "CHUNK_TOTAL": cs_results[2],
-            }
-        else:
-            print('incorrect chunk sizes returned %s' % len(cs_results))
-
         if ChunkInfo and int(ChunkInfo["CHUNK_START"]) == 0:
+            """ Handle first chunk """
             stuffed_form = MediaForm(request.POST, request.FILES)
             try:
                 print("saving the first chunk\n")
@@ -58,8 +44,8 @@ def upload(request):
             except Exception as e:
                 print("broke that lol: %s" % e)
 
-            print(original_filename)
-            handle_uploaded_file(f, original_filename)
+            print(ChunkInfo['FILENAME'])
+            handle_uploaded_file(f, ChunkInfo['FILENAME'])
             print("\nCHUNKY\n")
             file = {
                 "name": instance.item.name,
@@ -83,7 +69,10 @@ def upload(request):
         form = MediaForm(request.POST, request.FILES)
 
         if form.is_valid():
-            instance = Media(item=request.FILES['item'])
+            instance = Media(
+                item=request.FILES['item'],
+                upload_id=request.POST['upload_id']
+            )
             instance.save()
             file = {
                 "name": instance.item.name,
@@ -104,6 +93,12 @@ def get_upload_id(request):
         content_type="application/json"
     )
 
+"""
+def handle_uploaded_chunk(f, chunk_info):
+    try:
+        media_obj = Media.objects.filter('upload_id',chunk_info["upload_id"])
+"""
+
 
 def handle_uploaded_file(f, fdest):
     try:
@@ -122,12 +117,46 @@ def gen_filename(f):
     return filename
 
 
-def save_chunky_file(f):
-    pass
+def get_file_info(request_post, request_meta):
+    # Init variables
+    upload_id = ''
+    original_filename = ''
+    FileInfo = ''
 
+    if 'HTTP_CONTENT_DISPOSITION' in request_meta:
+        """ Chunky """
+        cs_results = ''
+        # Fill variables
+        original_filename = re.findall(
+            'filename="(.*?)"',
+            request_meta['HTTP_CONTENT_DISPOSITION'])[0]
+        # CSR: Chunk size regex
+        csr = re.compile(r'\d+')
+        cs_results = csr.findall(request_meta['HTTP_CONTENT_RANGE'])
 
-def get_chunk_info(chunk):
-    # Chunk size regex
-    csr = re.compile(r'\d+')
-    cs_results = csr.findall(request.META['HTTP_CONTENT_RANGE'])
-    pass
+        if ('upload_id' in request_post and
+                len(request_post['upload_id']) == 32):
+            upload_id = request_post['upload_id']
+
+        if len(cs_results) == 3:
+            FileInfo = {
+                "FILENAME": original_filename,
+                "CHUNK_START": cs_results[0],
+                "CHUNK_END": cs_results[1],
+                "CHUNK_TOTAL": cs_results[2],
+                "UPLOAD_ID": upload_id,
+            }
+        else:
+            return('incorrect chunk sizes returned %s' % len(cs_results))
+
+    else:
+        original_filename = re.findall(
+            'filename="(.*?)"',
+            request_meta['HTTP_CONTENT_DISPOSITION'])[0]
+        FileInfo = {
+            "FILENAME": request_meta,
+            "SIZE": request_meta['CONTENT_LENGTH'],
+
+        }
+
+    return FileInfo

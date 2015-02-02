@@ -73,6 +73,13 @@ $(function () {
                 $('<img>').attr('src', file.name.replace('uploads', 'static')).appendTo(document.body);
             });
         },
+        chunkdone: function (e, data) {
+            if(data.result.files.length >= 1) {
+                $.each(data.result.files, function (index, file) {
+                    console.log(file);
+                });
+            }
+        },
         progressall: function (e, data) {
             var progress = parseInt(data.loaded / data.total * 100, 10);
             $('.progress .progress-bar').css(
@@ -81,15 +88,6 @@ $(function () {
             ).attr('aria-valuenow', progress);
             $('.progress .sr-only').html(progress + '% Complete');
         }
-    }).on('fileuploadchunksend', function (e, data) {
-    }).on('fileuploadchunkdone', function (e, data) {
-        if(data.result.files.length >= 1) {
-            $.each(data.result.files, function (index, file) {
-                console.log(file);
-            });
-        }
-    }).on('fileuploadchunkfail', function (e, data) {
-    }).on('fileuploadchunkalways', function (e, data) {
     });
 });
 </script>

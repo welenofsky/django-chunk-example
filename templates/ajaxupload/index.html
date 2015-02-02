@@ -58,7 +58,6 @@ $(function () {
         add: function (e, data) {
             $.getJSON('/upload/new', function (result) {
                 data.formData = result; // e.g. {upload_id: 123}
-                console.log(result);
                 data.submit();
             });
         },

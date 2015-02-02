@@ -17,8 +17,9 @@ def gen_filename(instance, filename):
 
 
 class Media(TimeStampedModel):
-    title = models.CharField(max_length='255', default='', blank=True)
-    description = models.CharField(max_length='500', default='', blank=True)
+    title = models.CharField(max_length=255, default='', blank=True)
+    description = models.CharField(max_length=500, default='', blank=True)
+    upload_id = models.CharField(max_length=32, default='', blank=True)
     item = models.FileField(
         upload_to=gen_filename,
         blank=True,

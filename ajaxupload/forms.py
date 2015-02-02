@@ -7,4 +7,4 @@ class MediaForm(ModelForm):
 
     class Meta:
         model = Media
-        fields = ['item', 'title', 'description']
+        fields = ['item', 'title', 'description', 'upload_id']

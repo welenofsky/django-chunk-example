@@ -35,11 +35,11 @@
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
 <body>
-
 <form id="fileupload" action="/upload/" method="POST" enctype="multipart/form-data">
     <span class="btn btn-success fileinput-button">
         <span>Add files...</span>
         <input type="file" name="item" multiple>
+        <input type="hidden" name="upload_id" value="new">
     </span>
 </form>
 <div class="progress">
@@ -55,6 +55,13 @@ $(function () {
     $('#fileupload').fileupload({
         maxChunkSize: 4000000, // 4MB
         dataType: 'json',
+        add: function (e, data) {
+            $.getJSON('/upload/new', function (result) {
+                data.formData = result; // e.g. {upload_id: 123}
+                console.log(result);
+                data.submit();
+            });
+        },
         done: function (e, data) {
             if(data.errors){
                 $.each(data.errors, function(error) {
@@ -74,6 +81,15 @@ $(function () {
             ).attr('aria-valuenow', progress);
             $('.progress .sr-only').html(progress + '% Complete');
         }
+    }).on('fileuploadchunksend', function (e, data) {
+    }).on('fileuploadchunkdone', function (e, data) {
+        if(data.result.files.length >= 1) {
+            $.each(data.result.files, function (index, file) {
+                console.log(file);
+            });
+        }
+    }).on('fileuploadchunkfail', function (e, data) {
+    }).on('fileuploadchunkalways', function (e, data) {
     });
 });
 </script>

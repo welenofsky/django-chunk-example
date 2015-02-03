@@ -2,12 +2,15 @@ import os
 import json
 import re
 import uuid
+import boto
+from StringIO import StringIO
 
 from django.utils.timezone import now as timezone_now
 from django.core.files.storage import default_storage as storage
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 from .forms import MediaForm
 from .models import Media

@@ -10,6 +10,22 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import json
+
+from django.core.exceptions import ImproperlyConfigured
+
+with open("secrets.json") as f:
+    secrets = json.loads(f.read())
+
+
+def get_secret(setting, secrets=secrets):
+    """Get the secret variable or return an explicit exception."""
+    try:
+        return secrets[setting]
+    except KeyError:
+        error = "Set the {0} environment variable".format(setting)
+        raise ImproperlyConfigured(error)
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -17,7 +33,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '-eau^kv=8ooya0fjmv)rizsxlqk1v#&tb^$ljkk$hp#i#zc@+4'
+SECRET_KEY = get_secret("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -36,6 +52,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'boto',
+    'storages',
     'ajaxupload'
 )
 
@@ -77,7 +95,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
@@ -91,3 +108,9 @@ STATICFILES_DIRS = (
 TEMPLATE_DIRS = (
     os.path.join(BASE_DIR, 'templates'),
 )
+
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
+AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = get_secret("AWS_STORAGE_BUCKET_NAME")

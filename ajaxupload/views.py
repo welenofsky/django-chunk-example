@@ -3,7 +3,7 @@ import json
 import re
 import uuid
 import boto
-from StringIO import StringIO
+import io
 
 from django.utils.timezone import now as timezone_now
 from django.core.files.storage import default_storage as storage
@@ -17,7 +17,10 @@ from .models import Media
 
 
 def index(request):
-    return render(request, 'ajaxupload/index.html')
+    return render(request, 'ajaxupload/index.html', {
+        "MAX_CHUNK_SIZE": settings.MAX_CHUNK_SIZE,
+        "MAX_FILE_SIZE": settings.MAX_FILE_SIZE
+    })
 
 
 @csrf_exempt
@@ -53,6 +56,7 @@ def upload(request):
                 "name": instance.item.name,
                 "size": ChunkInfo["CHUNK_TOTAL"],
                 "upload_id": instance.upload_id,
+                "part": str(int(request.POST['part']) + 1)
             }
             data['files'].append(file)
             print(json.dumps(data))
@@ -66,11 +70,13 @@ def upload(request):
             """ Handle sequential chunks """
             instance = Media.objects.get(upload_id=ChunkInfo['UPLOAD_ID'])
             file = {
-                "name": instance.item.url,
+                "name": instance.item.name,
                 "size": ChunkInfo['CHUNK_TOTAL'],
-                "upload_id": ChunkInfo['UPLOAD_ID']
+                "upload_id": ChunkInfo['UPLOAD_ID'],
+                "part": str(int(request.POST['part']) + 1)
             }
             data['files'].append(file)
+            print(json.dumps(data))
             handle_uploaded_chunk(f, ChunkInfo)
     else:
         """ Not Chunky """
@@ -96,7 +102,10 @@ def upload(request):
 
 
 def get_upload_id(request):
-    upload_id = {"upload_id": str(uuid.uuid4().hex)}
+    upload_id = {
+        "upload_id": str(uuid.uuid4().hex),
+        "part": "0"
+    }
     return HttpResponse(
         json.dumps(upload_id),
         content_type="application/json"
@@ -104,12 +113,13 @@ def get_upload_id(request):
 
 
 def handle_uploaded_chunk(f, chunk_info):
+    if len(chunk_info['UPLOAD_ID'].rstrip()) == 32:
+        media_obj = Media.objects.get(upload_id=chunk_info['UPLOAD_ID'])
+        chunk_save_location = media_obj.item.name
     try:
-        if len(chunk_info['UPLOAD_ID'].rstrip()) == 32:
-            media_obj = Media.objects.get(upload_id=chunk_info['UPLOAD_ID'])
-            chunk_save_location = media_obj.item.url
-            with storage.open(chunk_save_location, 'ab') as destination:
-                destination.write(f.read())
+        with storage.open(chunk_save_location, 'ab') as destination:
+            destination.write(f.read())
+
     except Exception as e:
         print("Exception met when handling chunk: %s" % e)
 
@@ -136,6 +146,7 @@ def get_file_info(request_post, request_meta):
     upload_id = ''
     original_filename = ''
     FileInfo = ''
+    part = '0'
 
     if 'HTTP_CONTENT_DISPOSITION' in request_meta:
         """ Chunky """
@@ -152,6 +163,9 @@ def get_file_info(request_post, request_meta):
                 len(request_post['upload_id']) == 32):
             upload_id = request_post['upload_id']
 
+        if('part' in request_post):
+            part = request_post['part']
+
         if len(cs_results) == 3:
             FileInfo = {
                 "FILENAME": original_filename,
@@ -159,6 +173,7 @@ def get_file_info(request_post, request_meta):
                 "CHUNK_END": cs_results[1],
                 "CHUNK_TOTAL": cs_results[2],
                 "UPLOAD_ID": upload_id,
+                "PART": part
             }
         else:
             return('incorrect chunk sizes returned %s' % len(cs_results))

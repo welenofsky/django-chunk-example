@@ -54,12 +54,14 @@
 $(function () {
     var upload_id;
     $('#fileupload').fileupload({
-        maxChunkSize: 4000000, // 4MB
+        maxChunkSize: {{ MAX_CHUNK_SIZE }},
+        maxFileSize: {{ MAX_FILE_SIZE }},
         dataType: 'json',
         add: function (e, data) {
             $.getJSON('/upload/new', function (result) {
                 data.formData = result; // e.g. {upload_id: 123}
                 upload_id = result.upload_id;
+                part = result.part;
                 console.log('UPLOAD ID: ', upload_id);
                 data.submit();
             });
@@ -76,6 +78,9 @@ $(function () {
                 $('<p/>').text(file.name).appendTo(document.body);
                 $('<img>').attr('src', file.name.replace('uploads', 'static')).appendTo(document.body);
             });
+        },
+        chunksend: function (e, data) {
+            console.log(data)
         },
         chunkdone: function (e, data) {
             if(data.result.files.length >= 1) {

@@ -114,3 +114,6 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
 AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = get_secret("AWS_STORAGE_BUCKET_NAME")
+# File Upload restrictions in bytes
+MAX_CHUNK_SIZE = 4000000    # 4MB
+MAX_FILE_SIZE = 1000000000  # 1GB

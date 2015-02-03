@@ -45,7 +45,6 @@ def upload(request):
                 print("broke that lol: %s" % e)
 
             print(ChunkInfo['FILENAME'])
-            handle_uploaded_file(f, ChunkInfo['FILENAME'])
             print("\nCHUNKY\n")
             file = {
                 "name": instance.item.name,
@@ -62,7 +61,14 @@ def upload(request):
             )
         else:
             """ Handle sequential chunks """
-            pass
+            instance = Media.objects.get(upload_id=ChunkInfo['UPLOAD_ID'])
+            file = {
+                "name": instance.item.url,
+                "size": ChunkInfo['CHUNK_TOTAL'],
+                "upload_id": ChunkInfo['UPLOAD_ID']
+            }
+            data['files'].append(file)
+            handle_uploaded_chunk(f, ChunkInfo)
     else:
         """ Not Chunky """
         print(request.FILES['item'].name)
@@ -79,7 +85,7 @@ def upload(request):
                 "size": request.META['CONTENT_LENGTH']
             }
             data['files'].append(file)
-
+    print("\n\nDUMPING\n\n%s\n" % json.dumps(data))
     return HttpResponse(
         json.dumps(data),
         content_type="application/json"
@@ -93,11 +99,16 @@ def get_upload_id(request):
         content_type="application/json"
     )
 
-"""
+
 def handle_uploaded_chunk(f, chunk_info):
     try:
-        media_obj = Media.objects.filter('upload_id',chunk_info["upload_id"])
-"""
+        if len(chunk_info['UPLOAD_ID'].rstrip()) == 32:
+            media_obj = Media.objects.get(upload_id=chunk_info['UPLOAD_ID'])
+            chunk_save_location = media_obj.item.url
+            with storage.open(chunk_save_location, 'ab') as destination:
+                destination.write(f.read())
+    except Exception as e:
+        print("Exception met when handling chunk: %s" % e)
 
 
 def handle_uploaded_file(f, fdest):

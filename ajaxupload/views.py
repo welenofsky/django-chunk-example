@@ -34,7 +34,7 @@ def upload(request):
     if 'HTTP_CONTENT_DISPOSITION' in request.META:
         """ Chunky """
         ChunkInfo = get_file_info(request.POST, request.META)
-        f = request.FILES['item']
+        # f = request.FILES['item']
         if ChunkInfo and int(ChunkInfo["CHUNK_START"]) == 0:
             """ Handle first chunk """
             stuffed_form = MediaForm(request.POST, request.FILES)
@@ -42,17 +42,9 @@ def upload(request):
                 print("saving the first chunk\n")
                 # print("POST STUFF: %s" % request.POST['upload_id'])
                 instance = stuffed_form.save()
-                """
-                print("%s %s %s" % (
-                    instance.id,
-                    instance.item.name,
-                    instance.upload_id)
-                )
-                """
             except Exception as e:
                 print("broke that lol: %s" % e)
 
-            # print(ChunkInfo['FILENAME'])
             print("\nCHUNKY\n")
             file = {
                 "name": instance.item.name,
@@ -71,8 +63,6 @@ def upload(request):
                 "part": int(request.POST['part'])
             }
             data['files'].append(file)
-            # print(json.dumps(data))
-            # handle_uploaded_chunk(f, ChunkInfo)
     else:
         """ Not Chunky """
         # print(request.FILES['item'].name)

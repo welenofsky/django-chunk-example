@@ -40,32 +40,27 @@ def upload(request):
             stuffed_form = MediaForm(request.POST, request.FILES)
             try:
                 print("saving the first chunk\n")
-                print("POST STUFF: %s" % request.POST['upload_id'])
+                # print("POST STUFF: %s" % request.POST['upload_id'])
                 instance = stuffed_form.save()
+                """
                 print("%s %s %s" % (
                     instance.id,
                     instance.item.name,
                     instance.upload_id)
                 )
+                """
             except Exception as e:
                 print("broke that lol: %s" % e)
 
-            print(ChunkInfo['FILENAME'])
+            # print(ChunkInfo['FILENAME'])
             print("\nCHUNKY\n")
             file = {
                 "name": instance.item.name,
                 "size": ChunkInfo["CHUNK_TOTAL"],
                 "upload_id": instance.upload_id,
-                "part": str(int(request.POST['part']) + 1)
+                "part": int(request.POST['part'])
             }
             data['files'].append(file)
-            print(json.dumps(data))
-            print("%s\n%s\n%s\n" % (
-                request.META['HTTP_CONTENT_DISPOSITION'],
-                request.META['HTTP_CONTENT_RANGE'],
-                request.META['CONTENT_TYPE'],
-                )
-            )
         else:
             """ Handle sequential chunks """
             instance = Media.objects.get(upload_id=ChunkInfo['UPLOAD_ID'])
@@ -73,14 +68,14 @@ def upload(request):
                 "name": instance.item.name,
                 "size": ChunkInfo['CHUNK_TOTAL'],
                 "upload_id": ChunkInfo['UPLOAD_ID'],
-                "part": str(int(request.POST['part']) + 1)
+                "part": int(request.POST['part'])
             }
             data['files'].append(file)
-            print(json.dumps(data))
-            handle_uploaded_chunk(f, ChunkInfo)
+            # print(json.dumps(data))
+            # handle_uploaded_chunk(f, ChunkInfo)
     else:
         """ Not Chunky """
-        print(request.FILES['item'].name)
+        # print(request.FILES['item'].name)
         form = MediaForm(request.POST, request.FILES)
 
         if form.is_valid():
@@ -94,7 +89,13 @@ def upload(request):
                 "size": request.META['CONTENT_LENGTH']
             }
             data['files'].append(file)
-    print("\n\nDUMPING\n\n%s\n" % json.dumps(data))
+    print("\n\n%s\n%s\n%s" % (
+        request.META['HTTP_CONTENT_DISPOSITION'],
+        request.META['HTTP_CONTENT_RANGE'],
+        request.META['CONTENT_TYPE'],
+        )
+    )
+    print("%s\n" % json.dumps(data))
     return HttpResponse(
         json.dumps(data),
         content_type="application/json"
@@ -104,7 +105,7 @@ def upload(request):
 def get_upload_id(request):
     upload_id = {
         "upload_id": str(uuid.uuid4().hex),
-        "part": "0"
+        "part": "1"
     }
     return HttpResponse(
         json.dumps(upload_id),

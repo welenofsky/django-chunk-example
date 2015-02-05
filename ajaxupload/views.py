@@ -72,9 +72,10 @@ def handle_uploaded_chunk(chunk, chunkinfo):
     )
     b = Bucket(s3conn, settings.AWS_STORAGE_BUCKET_NAME)
     k = Key(b)
-    print("stop")
+    # print("stop")
     chunk_diff = int(chunkinfo['CHUNK_TOTAL']) - int(chunkinfo['CHUNK_END'])
     if int(chunkinfo["CHUNK_START"]) == 0:
+        print("chunk start")
         name, ext = os.path.splitext(chunkinfo["FILENAME"])
         k.key = "uploads/%s%s" % (chunkinfo["UPLOAD_ID"], ext)
         print(k.key)
@@ -87,7 +88,9 @@ def handle_uploaded_chunk(chunk, chunkinfo):
             False,
             'public-read'
         )
+        print("before bytes")
         buff = io.BytesIO(chunk.read())
+        print("after bytes")
         buff.seek(0)
         part = int(chunkinfo["PART"])
         mpu.upload_part_from_file(buff, part)
@@ -102,9 +105,10 @@ def handle_uploaded_chunk(chunk, chunkinfo):
             "part": chunkinfo['PART'],
             "mpuid": s3data["MPUID"]
         }
-        print("id: %s, keyname: %s" % (mpu.id, mpu.key_name))
+        print("INIT DONE: id: %s, keyname: %s\n\n" % (mpu.id, mpu.key_name))
     elif chunk_diff > -2 and chunk_diff < 2:
         try:
+            print("wrapping up upload")
             name, ext = os.path.splitext(chunkinfo["FILENAME"])
             k.key = "uploads/%s%s" % (chunkinfo["UPLOAD_ID"], ext)
             mpu = MultiPartUpload(b)
@@ -120,7 +124,7 @@ def handle_uploaded_chunk(chunk, chunkinfo):
                 mpu.key_name,
                 mpu.id, xml
             )
-            print("DONE: %s" % completed_mpu.location)
+            print("DONE: %s\n\n" % completed_mpu.location)
         except Exception as e:
             print(e)
         info = {
@@ -132,22 +136,24 @@ def handle_uploaded_chunk(chunk, chunkinfo):
             "uri": completed_mpu.location
         }
     else:
-        print("you might be missing")
+        print("mid chunk")
 
         name, ext = os.path.splitext(chunkinfo["FILENAME"])
         k.key = "uploads/%s%s" % (chunkinfo["UPLOAD_ID"], ext)
         mpu = MultiPartUpload(b)
         mpu.id = chunkinfo["MPUID"]
         mpu.key_name = k.key
+        print("before bytes")
         buff = io.BytesIO(chunk.read())
         buff.seek(0)
+        print("after bytes")
         part = int(chunkinfo['PART'])
         print(part)
         try:
             mpu.upload_part_from_file(buff, part)
         except Exception as e:
             print(e)
-
+        print("uploaded\n\n")
         info = {
             "name": k.key,
             "size": chunkinfo['CHUNK_TOTAL'],

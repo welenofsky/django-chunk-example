@@ -72,20 +72,21 @@ $(function () {
                     $('<div class="error">error</div>');
                 });
             }
-            $.each(data.result.files, function (index, file) {
-                $('<p/>').text(file.name).appendTo(document.body);
-                $('<img>').attr('src', file.name.replace('uploads', 'static')).appendTo(document.body);
-            });
+            if(typeof(data.result.files) !== "undefined" && data.result.files) {
+                $.each(data.result.files, function(index, file) {
+                    $('<img>').attr('src', file.uri).appendTo('body');
+                });
+            }
+            console.log(data.result);
         },
         chunksend: function (e, data) {
             data.formData.part = parseInt(data.formData.part) + 1;
+            //console.log(JSON.stringify(data, undefined, 4));
+            console.log(data);
         },
         chunkdone: function (e, data) {
-            if(data.result.files.length >= 1) {
-                $.each(data.result.files, function (index, file) {
-                    //console.log(file);
-                });
-            }
+            console.log("Chunk sent");
+            data.formData.mpuid = data.result.files[0].mpuid;
         },
         progressall: function (e, data) {
             var progress = parseInt(data.loaded / data.total * 100, 10);

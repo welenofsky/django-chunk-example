@@ -81,7 +81,6 @@ $(function () {
         },
         chunksend: function (e, data) {
             data.formData.part = parseInt(data.formData.part) + 1;
-            //console.log(JSON.stringify(data, undefined, 4));
             console.log(data);
         },
         chunkdone: function (e, data) {

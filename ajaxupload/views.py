@@ -40,6 +40,20 @@ def upload(request):
         ChunkInfo = get_file_info(request.POST, request.META)
         nfo = handle_uploaded_chunk(f, ChunkInfo)
         data['files'].append(nfo)
+    else:
+        form = MediaForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            instance = Media(
+                item=request.FILES['item'],
+                upload_id=request.POST['upload_id']
+            )
+            instance.save()
+            file = {
+                "name": instance.item.name,
+                "size": request.META['CONTENT_LENGTH']
+            }
+            data['files'].append(file)
 
     print("\n\n%s\n%s\n%s" % (
         request.META['HTTP_CONTENT_DISPOSITION'],
@@ -72,14 +86,12 @@ def handle_uploaded_chunk(chunk, chunkinfo):
     )
     b = Bucket(s3conn, settings.AWS_STORAGE_BUCKET_NAME)
     k = Key(b)
-    # print("stop")
+    k.key = chunkinfo["NEWNAME"]
+    content_type = mimetypes.guess_type(k.key)[0]
     chunk_diff = int(chunkinfo['CHUNK_TOTAL']) - int(chunkinfo['CHUNK_END'])
+
+    # First chunk
     if int(chunkinfo["CHUNK_START"]) == 0:
-        print("chunk start")
-        name, ext = os.path.splitext(chunkinfo["FILENAME"])
-        k.key = "uploads/%s%s" % (chunkinfo["UPLOAD_ID"], ext)
-        print(k.key)
-        content_type = mimetypes.guess_type(k.key)[0]
         mpu = b.initiate_multipart_upload(
             k.key,
             {"Content-Type": content_type},
@@ -88,12 +100,7 @@ def handle_uploaded_chunk(chunk, chunkinfo):
             False,
             'public-read'
         )
-        print("before bytes")
-        buff = io.BytesIO(chunk.read())
-        print("after bytes")
-        buff.seek(0)
-        part = int(chunkinfo["PART"])
-        mpu.upload_part_from_file(buff, part)
+        upload_part_from_bytesio(mpu, chunk, chunkinfo["PART"])
         s3data = {
             "MPUID": mpu.id,
             "MPKN": mpu.key_name
@@ -103,63 +110,40 @@ def handle_uploaded_chunk(chunk, chunkinfo):
             "size": chunkinfo['CHUNK_TOTAL'],
             "upload_id": chunkinfo['UPLOAD_ID'],
             "part": chunkinfo['PART'],
-            "mpuid": s3data["MPUID"]
+            "mpuid": s3data["MPUID"],
+            "content_type": content_type
         }
-        print("INIT DONE: id: %s, keyname: %s\n\n" % (mpu.id, mpu.key_name))
+    # Last chunk, -2 +2 byte error forgiveness
     elif chunk_diff > -2 and chunk_diff < 2:
-        try:
-            print("wrapping up upload")
-            name, ext = os.path.splitext(chunkinfo["FILENAME"])
-            k.key = "uploads/%s%s" % (chunkinfo["UPLOAD_ID"], ext)
-            mpu = MultiPartUpload(b)
-            mpu.id = chunkinfo["MPUID"]
-            mpu.key_name = k.key
-            buff = io.BytesIO(chunk.read())
-            buff.seek(0)
-            part = int(chunkinfo['PART'])
-            mpu.upload_part_from_file(buff, part)
-            print("finishing upload")
-            xml = mpu.to_xml()
-            completed_mpu = b.complete_multipart_upload(
-                mpu.key_name,
-                mpu.id, xml
-            )
-            print("DONE: %s\n\n" % completed_mpu.location)
-        except Exception as e:
-            print(e)
+        mpu = get_mpu(b, chunkinfo["MPUID"], k.key)
+        upload_part_from_bytesio(mpu, chunk, chunkinfo["PART"])
+
+        xml = mpu.to_xml()
+        completed_mpu = b.complete_multipart_upload(
+            mpu.key_name,
+            mpu.id, xml
+        )
         info = {
             "name": k.key,
             "size": chunkinfo['CHUNK_TOTAL'],
             "upload_id": chunkinfo['UPLOAD_ID'],
             "part": chunkinfo['PART'],
             "mpuid": mpu.id,
-            "uri": completed_mpu.location
+            "uri": completed_mpu.location,
+            "content_type":  content_type
         }
+    # Middle chunk
     else:
-        print("mid chunk")
+        mpu = get_mpu(b, chunkinfo["MPUID"], k.key)
+        upload_part_from_bytesio(mpu, chunk, chunkinfo["PART"])
 
-        name, ext = os.path.splitext(chunkinfo["FILENAME"])
-        k.key = "uploads/%s%s" % (chunkinfo["UPLOAD_ID"], ext)
-        mpu = MultiPartUpload(b)
-        mpu.id = chunkinfo["MPUID"]
-        mpu.key_name = k.key
-        print("before bytes")
-        buff = io.BytesIO(chunk.read())
-        buff.seek(0)
-        print("after bytes")
-        part = int(chunkinfo['PART'])
-        print(part)
-        try:
-            mpu.upload_part_from_file(buff, part)
-        except Exception as e:
-            print(e)
-        print("uploaded\n\n")
         info = {
             "name": k.key,
             "size": chunkinfo['CHUNK_TOTAL'],
             "upload_id": chunkinfo['UPLOAD_ID'],
-            "part": part,
+            "part": chunkinfo['PART'],
             "mpuid": mpu.id,
+            "content_type": content_type
         }
 
     return info
@@ -172,6 +156,22 @@ def handle_uploaded_file(f, fdest):
             destination.write(f.read())
     except Exception as e:
         print(e)
+
+
+def upload_part_from_bytesio(mpu, chunk, part):
+    buff = io.BytesIO(chunk.read())
+    buff.seek(0)
+    mpu.upload_part_from_file(buff, part)
+
+
+def get_mpu(bucket, id, key_name):
+    try:
+        mpu = MultiPartUpload(bucket)
+        mpu.id = id
+        mpu.key_name = key_name
+        return mpu
+    except:
+        return None
 
 
 def gen_filename(f):
@@ -197,6 +197,7 @@ def get_file_info(request_post, request_meta):
         original_filename = re.findall(
             'filename="(.*?)"',
             request_meta['HTTP_CONTENT_DISPOSITION'])[0]
+        oldname, oldext = os.path.splitext(original_filename)
         # CSR: Chunk size regex
         csr = re.compile(r'\d+')
         cs_results = csr.findall(request_meta['HTTP_CONTENT_RANGE'])
@@ -204,9 +205,10 @@ def get_file_info(request_post, request_meta):
         if ('upload_id' in request_post and
                 len(request_post['upload_id']) == 32):
             upload_id = request_post['upload_id']
+            newname = "uploads/%s%s" % (upload_id, oldext)
 
         if('part' in request_post):
-            part = request_post['part']
+            part = int(request_post['part'])
 
         if('mpuid' in request_post):
             mpuid = request_post['mpuid']
@@ -214,6 +216,7 @@ def get_file_info(request_post, request_meta):
         if len(cs_results) == 3:
             FileInfo = {
                 "FILENAME": original_filename,
+                "NEWNAME": newname,
                 "CHUNK_START": cs_results[0],
                 "CHUNK_END": cs_results[1],
                 "CHUNK_TOTAL": cs_results[2],
@@ -222,8 +225,8 @@ def get_file_info(request_post, request_meta):
                 "MPUID": mpuid
             }
         else:
-            return('incorrect chunk sizes returned %s' % len(cs_results))
-
+            pass
+            # return('incorrect chunk sizes returned %s' % len(cs_results))
     else:
         original_filename = re.findall(
             'filename="(.*?)"',

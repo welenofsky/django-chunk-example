@@ -25,7 +25,10 @@ module.exports = function(grunt) {
                 src: [
                     'bower_components/jquery-file-upload/js/vendor/jquery.ui.widget.js',
                     'bower_components/jquery-file-upload/js/jquery.iframe-transport.js',
-                    'bower_components/jquery-file-upload/js/jquery.fileupload.js'
+                    'bower_components/jquery-file-upload/js/jquery.fileupload.js',
+                    'src/vendor/pdfjs/build/pdf.js',
+                    'src/vendor/pdfjs/build/pdf.worker.js',
+                    'src/vendor/pdfjs/build/generic/web/compatibility.js'
                 ],
                 dest: 'static/js/plugins.js'
             },

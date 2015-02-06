@@ -53,6 +53,10 @@
 <script>
 $(function () {
     var upload_id;
+    var docs = ['pdf'];
+    var imgs = ['gif', 'jpeg', 'jpg', 'gif', 'png'];
+    var vids = ['mov', 'mpeg', 'mpeg4', 'webm', 'mp4', 'avi', 'mkv', '3gp', 'wmv', 'm4v'];
+
     $('#fileupload').fileupload({
         maxChunkSize: {{ MAX_CHUNK_SIZE }},
         maxFileSize: {{ MAX_FILE_SIZE }},

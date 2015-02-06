@@ -30,7 +30,7 @@ module.exports = function(grunt) {
                     'src/vendor/pdfjs/build/pdf.worker.js',
                     'src/vendor/pdfjs/build/generic/web/compatibility.js'
                 ],
-                dest: 'static/js/plugins.js'
+                dest: 'src/js/plugins.js'
             },
             bootstrap: {
                 src: [
@@ -48,6 +48,13 @@ module.exports = function(grunt) {
                     'src/js/bootstrap/affix.js'
                 ],
                 dest: 'static/js/main.js'
+            }
+        },
+        uglify: {
+            plugins: {
+              files: {
+                'static/js/plugins.js': ['src/js/plugins.js',]
+              }
             }
         },
         less: {
@@ -68,6 +75,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-less');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-copy');
+    grunt.loadNpmTasks('grunt-contrib-uglify');
 
     grunt.registerTask('default', ['copy', 'concat', 'less']);
 };

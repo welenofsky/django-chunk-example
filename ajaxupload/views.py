@@ -7,11 +7,10 @@ import mimetypes
 
 from django.utils.timezone import now as timezone_now
 from django.core.files.storage import default_storage as storage
-from django.shortcuts import render, render_to_response
+from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from django.template import RequestContext
 
 from boto.s3.connection import S3Connection, Bucket, Key
 from boto.s3.multipart import MultiPartUpload
@@ -21,22 +20,14 @@ from .models import Media
 
 
 def index(request):
-    response = render_to_response('ajaxupload/index.html', {
+    return render(request, 'ajaxupload/index.html', {
         "MAX_CHUNK_SIZE": settings.MAX_CHUNK_SIZE,
         "MAX_FILE_SIZE": settings.MAX_FILE_SIZE
-        },
-        context_instance=RequestContext(request)
-    )
-    return response
+    })
 
 
 def pdfviewer(request):
-    response = render_to_response(
-        'ajaxupload/viewer.html',
-        {},
-        context_instance=RequestContext(request)
-    )
-    return response
+    return render(request, 'ajaxupload/viewer.html')
 
 
 @csrf_exempt
@@ -136,6 +127,7 @@ def handle_uploaded_chunk(chunk, chunkinfo):
             mpu.key_name,
             mpu.id, xml
         )
+        print("return value for completed_mpu: %s\n" % completed_mpu)
         info = {
             "name": k.key,
             "size": chunkinfo['CHUNK_TOTAL'],
@@ -145,6 +137,12 @@ def handle_uploaded_chunk(chunk, chunkinfo):
             "uri": completed_mpu.location,
             "content_type":  content_type
         }
+        try:
+            media_obj = Media()
+            media_obj.item.name = k.key
+            media_obj.save()
+        except Exception as e:
+            print(e)
     # Middle chunk
     else:
         mpu = get_mpu(b, chunkinfo["MPUID"], k.key)

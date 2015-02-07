@@ -55,7 +55,7 @@ $(function () {
     var upload_id;
     var docs = ['pdf'];
     var imgs = ['gif', 'jpeg', 'jpg', 'gif', 'png'];
-    var vids = ['mov', 'mpeg', 'mpeg4', 'webm', 'mp4', 'avi', 'mkv', '3gp', 'wmv', 'm4v'];
+    var vids = ['mov', 'mpeg', 'mpeg4', 'webm', 'mp4', 'avi', 'mkv', '3gp', '3gpp', '3gp2', 'wmv', 'm4v', 'ogv', 'h264', 'm4e'];
 
     $('#fileupload').fileupload({
         maxChunkSize: {{ MAX_CHUNK_SIZE }},
@@ -86,8 +86,12 @@ $(function () {
                             height: "600px",
                             width: "100%"
                         }).appendTo('body');
-                    } else {
+                    } else if (imgs.indexOf(extension) > -1) {
                         $('<img>').attr('src', file.uri).appendTo('body');
+                    } else if (vids.indexOf(extension) > -1) {
+                        $('<img>').attr('src', '/static/img/Upload_Processing.png').appendTo('body');
+                    } else {
+                        // Unsupported Filetype
                     }
                 });
             }

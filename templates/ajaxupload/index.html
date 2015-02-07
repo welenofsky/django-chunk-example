@@ -78,7 +78,17 @@ $(function () {
             }
             if(typeof(data.result.files) !== "undefined" && data.result.files) {
                 $.each(data.result.files, function(index, file) {
-                    $('<img>').attr('src', file.uri).appendTo('body');
+                    var extension = file.uri.split('.').pop();
+                    if (docs.indexOf(extension) > -1) {
+                        pdfsrc="/static/pdfjs/web/viewer.html?file=" + encodeURIComponent(file.uri);
+                        $('<iframe>').attr({
+                            src: pdfsrc,
+                            height: "600px",
+                            width: "100%"
+                        }).appendTo('body');
+                    } else {
+                        $('<img>').attr('src', file.uri).appendTo('body');
+                    }
                 });
             }
             console.log(data.result);

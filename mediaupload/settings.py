@@ -42,6 +42,11 @@ TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CORS_ORIGIN_WHITELIST = (
+    'localhost:8000',
+    'beta.talentearth.com',
+    'talentearth.com'
+)
 
 # Application definition
 
@@ -54,13 +59,15 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'boto',
     'storages',
-    'ajaxupload'
+    'ajaxupload',
+    'corsheaders',
 )
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',

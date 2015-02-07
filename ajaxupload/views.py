@@ -7,10 +7,11 @@ import mimetypes
 
 from django.utils.timezone import now as timezone_now
 from django.core.files.storage import default_storage as storage
-from django.shortcuts import render
+from django.shortcuts import render, render_to_response
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from django.template import RequestContext
 
 from boto.s3.connection import S3Connection, Bucket, Key
 from boto.s3.multipart import MultiPartUpload
@@ -20,10 +21,22 @@ from .models import Media
 
 
 def index(request):
-    return render(request, 'ajaxupload/index.html', {
+    response = render_to_response('ajaxupload/index.html', {
         "MAX_CHUNK_SIZE": settings.MAX_CHUNK_SIZE,
         "MAX_FILE_SIZE": settings.MAX_FILE_SIZE
-    })
+        },
+        context_instance=RequestContext(request)
+    )
+    return response
+
+
+def pdfviewer(request):
+    response = render_to_response(
+        'ajaxupload/viewer.html',
+        {},
+        context_instance=RequestContext(request)
+    )
+    return response
 
 
 @csrf_exempt

@@ -53,19 +53,14 @@ def upload(request):
                 upload_id=request.POST['upload_id']
             )
             instance.save()
+            s3bucketuri = "https://te-testbucket.s3.amazonaws.com/%s"
             file = {
                 "name": instance.item.name,
-                "size": request.META['CONTENT_LENGTH']
+                "size": request.META['CONTENT_LENGTH'],
+                "uri": s3bucketuri % instance.item.name
             }
             data['files'].append(file)
 
-    print("\n\n%s\n%s\n%s" % (
-        request.META['HTTP_CONTENT_DISPOSITION'],
-        request.META['HTTP_CONTENT_RANGE'],
-        request.META['CONTENT_TYPE'],
-        )
-    )
-    print("%s\n" % json.dumps(data))
     return HttpResponse(
         json.dumps(data),
         content_type="application/json"
@@ -125,7 +120,8 @@ def handle_uploaded_chunk(chunk, chunkinfo):
         xml = mpu.to_xml()
         completed_mpu = b.complete_multipart_upload(
             mpu.key_name,
-            mpu.id, xml
+            mpu.id,
+            xml
         )
         print("return value for completed_mpu: %s\n" % completed_mpu)
         info = {

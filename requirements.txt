@@ -1,5 +1,5 @@
 boto==2.36.0
-Django==1.7.3
+Django==1.11.23
 django-cors-headers==1.0.0
 django-storages-redux==1.2.2
 mock==1.0.1
